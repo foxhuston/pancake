@@ -40,7 +40,7 @@ train :: (Ord a) => [a] -> MarkovMap a
 train = trainWithMap Map.empty
 
 trainWithMap :: (Ord a) => MarkovMap a -> [a] -> MarkovMap a
-trainWithMap m xs = train' (zipWith (,) xs $ drop 1 xs)
+trainWithMap m xs = train' (zipWith (,) xs $ drop 1 xs) m
 
 train' :: (Ord a) => [(a, a)] -> MarkovMap a -> MarkovMap a
 train' [] m = m

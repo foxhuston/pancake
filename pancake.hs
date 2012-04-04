@@ -1,15 +1,14 @@
 module Main (main) where
 
-import Prelude hiding (foldr)
-import Data.Foldable (foldr)
-import Data.List (sort)
-import Data.Map ((!))
-import qualified Data.Map as Map
 import System.Environment (getArgs)
 import System.Random
-import qualified Data.Markov as Markov
 
-type MarkovMap a = Map.Map a (Map.Map a Int) 
+import Control.Monad.Fix (fix)
+
+import Data.List (isInfixOf)
+
+import Data.Markov (MarkovMap)
+import qualified Data.Markov as Markov
 
 -- Funny: takeUntilStop $ generate' (mkStdGen 123) tr "this"
 
