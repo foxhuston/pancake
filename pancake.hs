@@ -44,14 +44,14 @@ write h s t = do
         printf    "> %s %s\n" s t
 
 listen :: Handle -> MarkovMap String -> IO ()
-listen h m = forever (\x -> do
+listen h m = forever m $ \x -> do
         t <- hGetLine h
         let s = init t
         newM <- eval h m (clean s)
         putStrLn s
-        return newM) m
+        return newM
     where
-        forever a x = a x >>= forever a
+        forever x a = a x >>= (flip forever) a
 
         clean = drop 1 . dropWhile (/= ':') . drop 1
 
