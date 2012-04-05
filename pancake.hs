@@ -1,11 +1,16 @@
 module Main (main) where
 
+import Network
+
 import System.Environment (getArgs)
+import System.IO
 import System.Random
 
 import Control.Monad.Fix (fix)
 
-import Data.List (isInfixOf)
+import Data.List
+
+import Text.Printf
 
 import Data.Markov (MarkovMap)
 import qualified Data.Markov as Markov
@@ -15,13 +20,54 @@ import qualified Data.Markov as Markov
 -- "fox is the minumum requirements for 8-bit computations.\""
 -- "The battery life is alive!"
 
+server = ""
+port   = 7000
+chan   = "#botTest"
+nick   = "pancake"
+
 main :: IO ()
 main = do
    args <- getArgs
    training <- readFile "training.txt"
    let tr = Markov.train $ words training
-   randomGibberish <- generate (args !! 0) tr
-   print randomGibberish
+   h <- connectTo server (PortNumber (fromIntegral port))
+   hSetBuffering h NoBuffering
+   write h "NICK" nick
+   write h "USER" (nick++" 0 * :pancake")
+   write h "JOIN" chan
+   listen h tr
+
+
+write :: Handle -> String -> String -> IO ()
+write h s t = do
+        hPrintf h "%s %s\r\n" s t
+        printf    "> %s %s\n" s t
+
+listen :: Handle -> MarkovMap String -> IO ()
+listen h m = forever (\x -> do
+        t <- hGetLine h
+        let s = init t
+        newM <- eval h m (clean s)
+        putStrLn s
+        return newM) m
+    where
+        forever a x = a x >>= forever a
+
+        clean = drop 1 . dropWhile (/= ':') . drop 1
+
+        ping x = "PING :" `isPrefixOf` x
+        pong x = write h "PONG" (':' : drop 6 x)
+
+eval :: Handle -> MarkovMap String -> String -> IO (MarkovMap String)
+eval h m x | "pancake" `isInfixOf` x = do
+        response <- generate "this" m
+        privmsg h response
+        return m
+eval h m x | "PING :" `isPrefixOf` x = write h "PONG" (':' : drop 6 x) >> return m
+eval _ m x = return $ Markov.trainWithMap m [x]
+
+privmsg :: Handle -> String -> IO ()
+privmsg h s = write h "PRIVMSG" (chan ++ " :" ++ s)
 
 generate :: String -> MarkovMap String -> IO String
 generate seed markovMap = do
