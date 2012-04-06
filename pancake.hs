@@ -24,26 +24,27 @@ data (Ord a) => Sequence a = Start | Block a | End
 
 type PancakeMap = Markov.MarkovMap (Sequence String)
 
-server = ""
-port   = 7000
-chan   = "#botTest"
+chan   = "#optacular"
 nick   = "pancake"
 
 main :: IO ()
 main = do
    args <- getArgs
+   let server = args !! 0
+       port   = read (args !! 1)
    h <- connectTo server (PortNumber (fromIntegral port))
    training <- readFile "training.map"
+   rng <- getStdGen
    hSetBuffering h NoBuffering
    write h "NICK" nick
    write h "USER" (nick++" 0 * :pancake")
    write h "JOIN" chan
-   listen h $ read training
+   listen rng h $ read training
 
 -- | Purely a utility function
 mkTrainingMap :: String -> IO ()
 mkTrainingMap path = do
-   training <- readFile "training.txt"
+   training <- readFile "learned.map"
    let ls  = lines training
    let seq = concatMap mkSequenceLine ls
    let tr  = Markov.train seq
@@ -57,37 +58,35 @@ write h s t = do
         hPrintf h "%s %s\r\n" s t
         printf    "> %s %s\n" s t
 
-listen :: Handle -> PancakeMap -> IO ()
-listen h m = forever m $ \x -> do
+listen :: StdGen -> Handle -> PancakeMap -> IO ()
+listen g h m = forever (g, m) $ \(rng, x) -> do
         t <- hGetLine h
         let s = init t
-        newM <- eval h m (clean s)
+        (newRng, newM) <- eval rng h m (clean s)
         writeFile "learned.map" $ show newM
         putStrLn s
-        return newM
+        return (newRng, newM)
     where
         forever x a = a x >>= (flip forever) a
-
         clean = drop 1 . dropWhile (/= ':') . drop 1
 
-        ping x = "PING :" `isPrefixOf` x
-        pong x = write h "PONG" (':' : drop 6 x)
-
-eval :: Handle -> PancakeMap -> String -> IO PancakeMap
-eval h m x | "pancake" `isInfixOf` x = do
-        response <- generate m
+eval :: StdGen -> Handle -> PancakeMap -> String -> IO (StdGen, PancakeMap)
+eval g h m x | "pancake" `isInfixOf` x = do
+        (gen, response) <- generate g m
         privmsg h response
-        return m
-eval h m x | "PING :" `isPrefixOf` x = write h "PONG" (':' : drop 6 x) >> return m
-eval _ m x = return $ Markov.trainWithMap m $ mkSequenceLine x
+        return (gen, m)
+eval g h m x | "PING :" `isPrefixOf` x = write h "PONG" (':' : drop 6 x) >> return (g, m)
+eval g _ m x = return (g, Markov.trainWithMap m $ mkSequenceLine x)
 
 privmsg :: Handle -> String -> IO ()
 privmsg h s = write h "PRIVMSG" (chan ++ " :" ++ s)
 
-generate :: PancakeMap -> IO String
-generate markovMap = do
-   rng <- getStdGen
-   return $ unSeq $ takeWhile isBlock $ drop 1 $ Markov.generate rng markovMap Start
+generate :: StdGen -> PancakeMap -> IO (StdGen, String)
+generate rng markovMap = do
+   let gen = takeWhile (isBlock.fst) $ drop 1 $ Markov.generate rng markovMap Start
+   let nextRand = snd $ last gen
+   let seq = map fst gen
+   return (nextRand, unSeq seq)
 
 --- Utility functions ---
 

@@ -13,7 +13,7 @@ import System.Random
 
 type MarkovMap a = Map.Map a (Map.Map a Int) 
 
-generate :: (Ord a) => StdGen -> MarkovMap a -> a -> [a]
+generate :: (Ord a) => StdGen -> MarkovMap a -> a -> [(a, StdGen)]
 generate randomGen m current =
     let currentMap    = m ! current
     	total         = foldr (+) 0 currentMap
@@ -23,7 +23,7 @@ generate randomGen m current =
 	(rand, next)  = getRandomDouble randomGen
 	element	      = getNearest rand sortedList
 	rest	      = generate next m element
-    in element : rest
+    in (element, next) : rest
 
 getRandomDouble :: (RandomGen g) => g -> (Double, g)
 getRandomDouble = random
