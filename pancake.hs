@@ -12,13 +12,17 @@ import Data.List
 
 import Text.Printf
 
-import Data.Markov (MarkovMap)
 import qualified Data.Markov as Markov
 
 -- Funny: takeUntilStop $ generate' (mkStdGen 123) tr "this"
 
 -- "fox is the minumum requirements for 8-bit computations.\""
 -- "The battery life is alive!"
+
+data (Ord a) => Sequence a = Start | Block a | End
+        deriving (Eq, Ord, Read, Show)
+
+type PancakeMap = Markov.MarkovMap (Sequence String)
 
 server = ""
 port   = 7000
@@ -28,26 +32,37 @@ nick   = "pancake"
 main :: IO ()
 main = do
    args <- getArgs
-   training <- readFile "training.txt"
-   let tr = Markov.train $ words training
    h <- connectTo server (PortNumber (fromIntegral port))
+   training <- readFile "training.map"
    hSetBuffering h NoBuffering
    write h "NICK" nick
    write h "USER" (nick++" 0 * :pancake")
    write h "JOIN" chan
-   listen h tr
+   listen h $ read training
 
+-- | Purely a utility function
+mkTrainingMap :: String -> IO ()
+mkTrainingMap path = do
+   training <- readFile "training.txt"
+   let ls  = lines training
+   let seq = concatMap mkSequenceLine ls
+   let tr  = Markov.train seq
+   writeFile path $ show tr
+
+mkSequenceLine :: String -> [Sequence String]
+mkSequenceLine line = Start : (map Block $ words line) ++ [End]
 
 write :: Handle -> String -> String -> IO ()
 write h s t = do
         hPrintf h "%s %s\r\n" s t
         printf    "> %s %s\n" s t
 
-listen :: Handle -> MarkovMap String -> IO ()
+listen :: Handle -> PancakeMap -> IO ()
 listen h m = forever m $ \x -> do
         t <- hGetLine h
         let s = init t
         newM <- eval h m (clean s)
+        writeFile "learned.map" $ show newM
         putStrLn s
         return newM
     where
@@ -58,34 +73,29 @@ listen h m = forever m $ \x -> do
         ping x = "PING :" `isPrefixOf` x
         pong x = write h "PONG" (':' : drop 6 x)
 
-eval :: Handle -> MarkovMap String -> String -> IO (MarkovMap String)
+eval :: Handle -> PancakeMap -> String -> IO PancakeMap
 eval h m x | "pancake" `isInfixOf` x = do
-        response <- generate "this" m
+        response <- generate m
         privmsg h response
         return m
 eval h m x | "PING :" `isPrefixOf` x = write h "PONG" (':' : drop 6 x) >> return m
-eval _ m x = return $ Markov.trainWithMap m [x]
+eval _ m x = return $ Markov.trainWithMap m $ mkSequenceLine x
 
 privmsg :: Handle -> String -> IO ()
 privmsg h s = write h "PRIVMSG" (chan ++ " :" ++ s)
 
-generate :: String -> MarkovMap String -> IO String
-generate seed markovMap = do
+generate :: PancakeMap -> IO String
+generate markovMap = do
    rng <- getStdGen
-   return (seed ++ " " ++ (unwords $ takeUntilStop $ Markov.generate rng markovMap seed))
+   return $ unSeq $ takeWhile isBlock $ drop 1 $ Markov.generate rng markovMap Start
 
 --- Utility functions ---
 
-hasAny :: Eq a => [a] -> [a] -> Bool
-hasAny [] ys     = False
-hasAny (x:xs) ys = x `elem` ys || hasAny xs ys
+unSeq :: [Sequence String] -> String
+unseq [] = ""
+unseq ((Block x):xs) = x ++ " " ++ (unseq xs)
+unSeq (_:xs) = unseq xs
 
-takeUntilStop :: [String] -> [String]
-takeUntilStop = takeUntil (not . hasAny ".!?")
-
-takeUntil :: (a -> Bool) -> [a] -> [a]
-takeUntil _ []     = []
-takeUntil f (x:xs) =
-   case f x of
-	True -> x : (takeUntil f xs)
-	False -> [x]
+isBlock :: Sequence String -> Bool
+isBlock (Block _) = True
+isBlock _         = False
