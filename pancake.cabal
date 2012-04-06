@@ -53,7 +53,8 @@ Executable pancake
   -- Packages needed in order to build this package.
   Build-depends:       base,
                        random,
-                       containers
+                       containers,
+                       network
   
   -- Modules not exported by this package.
   -- Other-modules:       

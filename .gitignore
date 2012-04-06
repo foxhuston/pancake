@@ -3,4 +3,5 @@ pancake
 *.swp
 *.hi
 *.o
+dist/
 training.txt
