@@ -33,7 +33,7 @@ main = do
    let server = args !! 0
        port   = read (args !! 1)
    h <- connectTo server (PortNumber (fromIntegral port))
-   training <- readFile "training.map"
+   training <- readFile "learned.map"
    rng <- getStdGen
    hSetBuffering h NoBuffering
    write h "NICK" nick
@@ -44,7 +44,7 @@ main = do
 -- | Purely a utility function
 mkTrainingMap :: String -> IO ()
 mkTrainingMap path = do
-   training <- readFile "learned.map"
+   training <- readFile "training.txt"
    let ls  = lines training
    let seq = concatMap mkSequenceLine ls
    let tr  = Markov.train seq
@@ -84,6 +84,7 @@ privmsg h s = write h "PRIVMSG" (chan ++ " :" ++ s)
 generate :: StdGen -> PancakeMap -> IO (StdGen, String)
 generate rng markovMap = do
    let gen = takeWhile (isBlock.fst) $ drop 1 $ Markov.generate rng markovMap Start
+   print gen
    let nextRand = snd $ last gen
    let seq = map fst gen
    return (nextRand, unSeq seq)
@@ -94,6 +95,7 @@ unSeq :: [Sequence String] -> String
 unseq [] = ""
 unseq ((Block x):xs) = x ++ " " ++ (unseq xs)
 unSeq (_:xs) = unseq xs
+unSeq _ = "wat"
 
 isBlock :: Sequence String -> Bool
 isBlock (Block _) = True
