@@ -54,7 +54,8 @@ Executable pancake
   Build-depends:       base,
                        random,
                        containers,
-                       network
+                       network,
+                       irc,
   
   -- Modules not exported by this package.
   -- Other-modules:       
