@@ -5,3 +5,5 @@ pancake
 *.o
 dist/
 training.txt
+*.txt
+scarlet.map

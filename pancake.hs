@@ -35,12 +35,24 @@ main = do
        port         = read (args !! 1)
    h <- connectTo server (PortNumber (fromIntegral port))
    training <- readFile "learned.map"
-   rng <- getStdGen
    hSetBuffering h NoBuffering
    
    initCommands h "pancake"
-   
-   listen rng h $ read training
+
+   sources <- makeSources
+   network <- compile $ setupNetwork sources
+   actuate network
+   eventLoop sources
+
+makeSources = (,) <$> newAddHandler <*> newAddHandler
+
+eventLoop :: Handle -> (EventSource (), EventSource ()) -> IO ()
+eventLoop h (esPing, esPrivmsg) = loop
+    where
+    loop = do
+        line <- hGetLine h
+        let command = 
+        
 
 initCommands :: Handle -> String -> IO ()
 initCommands h nick = do
