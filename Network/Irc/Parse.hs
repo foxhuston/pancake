@@ -1,9 +1,12 @@
 module Network.Irc.Parse (parse) where
 
-import Command
+import Network.Irc.Command
 import Text.ParserCombinators.Parsec hiding (parse)
 import qualified Text.ParserCombinators.Parsec as P
 
+parse = id
+
+{-
 parse :: String -> Command String
 parse input = P.parse message "irc" input
 
@@ -24,3 +27,4 @@ message = try (do
             msg <- many1 anyChar
             return $ GenericCommand msg
         )
+-}

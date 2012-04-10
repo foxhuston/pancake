@@ -5,7 +5,7 @@ import Control.Monad.Fix (fix)
 import Data.List
 
 import Network
-import qualified Network.IRC as Irc
+-- import qualified Network.Irc as Irc
 
 import System.Environment (getArgs)
 import System.IO
@@ -25,7 +25,7 @@ data (Ord a) => Sequence a = Start | Block a | End
 
 type PancakeMap = Markov.MarkovMap (Sequence String)
 
-chan   = "#optacular"
+chan   = "#botTest"
 nick   = "pancake"
 
 main :: IO ()
@@ -51,7 +51,7 @@ eventLoop h (esPing, esPrivmsg) = loop
     where
     loop = do
         line <- hGetLine h
-        let command = 
+        let command = 0
         
 
 initCommands :: Handle -> String -> IO ()

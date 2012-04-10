@@ -1,9 +1,9 @@
-module Irc (
-        module Irc.Command,
-        module Irc.Parse
+module Network.Irc (
+        module Network.Irc.Command,
+        module Network.Irc.Parse
         )
         where
 
-import Irc.Command
-import Irc.Parse
+import Network.Irc.Command
+import Network.Irc.Parse
 
