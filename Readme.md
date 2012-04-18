@@ -9,6 +9,8 @@ ToDo
 ====
 
 * Get pancake to a building state again
+  * I'm thinking that I need to branch an older working version as the main, and
+  * build a development branch to continue these shenanigans
 * Build libary for dealing with IRC messages as Haskell types (aka not strings).
 * ~~Save the Markov Map to disk~~ Done!
 * Come up with a cleaner (reactive?) way to deal with IRC events
