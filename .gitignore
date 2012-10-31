@@ -4,6 +4,7 @@ pancake
 *.hi
 *.o
 dist/
+training
 training.txt
 *.txt
 scarlet.map

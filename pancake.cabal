@@ -56,8 +56,7 @@ Executable pancake
                        random,
                        containers,
                        network,
-                       irc,
-                       reactive-banana
+                       markov
   
   -- Modules not exported by this package.
   -- Other-modules:       
